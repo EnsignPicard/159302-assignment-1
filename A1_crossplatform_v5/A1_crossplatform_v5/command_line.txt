@@ -1,0 +1,13 @@
+//////////////////////////////////////////////////////
+// sample command lines
+//////////////////////////////////////////////////////
+search  "single_run" astar_explist_manhattan "608435127" "123456780"
+search  single_run astar_explist_manhattan 608435127 123456780
+search  "animate_run" astar_explist_manhattan "608435127" "123456780"
+
+search  "animate_run" uc_explist "608435127" "123456780"
+
+search "batch_run" astar_explist_manhattan 
+search "batch_run" astar_explist_misplacedtiles 
+search "batch_run" uc_explist 
+search "batch_run" all 
