@@ -1,14 +1,8 @@
-
-
 #include "algorithm.h"
 #include <vector>
 #include <unordered_set>
 
 using namespace std;
-
-
-
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -88,9 +82,7 @@ string uc_explist(string const initialState, string const goalState, int& pathLe
       vector<Puzzle*> successors;
       
       if (current->canMoveUp()) {
-
          successors.push_back(current->moveUp());
-
       }
       if (current->canMoveRight()) {
          successors.push_back(current->moveRight());
@@ -106,13 +98,36 @@ string uc_explist(string const initialState, string const goalState, int& pathLe
       for (Puzzle* successor : successors) {
          string successorState = successor->toString();
    
-         // Check if successor is already expanded and if so we don't add it
-         if (expandedList.find(successorState) == expandedList.end()) {
-            puzzleQueue.push_back(successor);
-            push_heap(puzzleQueue.begin(), puzzleQueue.end(), UCComparator());
-         } else {
-            numOfLocalLoopsAvoided++;
+         // Check if successor is already expanded - don't increment LOCAL_LOOPS_AVOIDED (expanded list prevents local loops entirely)
+         if (expandedList.find(successorState) != expandedList.end()) {
             delete successor;
+         } else {
+            // Step 7: If descendant state already in Q, keep only shorter path to state in Q
+            bool foundInQueue = false;
+            for (auto it = puzzleQueue.begin(); it != puzzleQueue.end(); ++it) {
+               if ((*it)->toString() == successorState) {
+                  foundInQueue = true;
+                  if (successor->getPathLength() < (*it)->getPathLength()) {
+                     // New path is better, remove old one from middle of heap
+                     delete *it;
+                     puzzleQueue.erase(it);
+                     numOfDeletionsFromMiddleOfHeap++;
+                     make_heap(puzzleQueue.begin(), puzzleQueue.end(), UCComparator());
+                     // Add the better successor
+                     puzzleQueue.push_back(successor);
+                     push_heap(puzzleQueue.begin(), puzzleQueue.end(), UCComparator());
+                  } else {
+                     // Old path is better or equal, discard new successor
+                     delete successor;
+                  }
+                  break;
+               }
+            }
+            if (!foundInQueue) {
+               // State not in queue, add it
+               puzzleQueue.push_back(successor);
+               push_heap(puzzleQueue.begin(), puzzleQueue.end(), UCComparator());
+            }
          }
       }
       
@@ -124,10 +139,6 @@ string uc_explist(string const initialState, string const goalState, int& pathLe
    pathLength = 0;
    return ""; // we return empty string if no solution
 }
-
-
-
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -218,56 +229,169 @@ string aStar_ExpandedList(string const initialState, string const goalState, int
       if (current->canMoveUp()) {
          Puzzle* successor = current->moveUp();
          string successorState = successor->toString();
-         if (expandedList.find(successorState) == expandedList.end()) {
+         
+         // Check if successor is already expanded - don't increment LOCAL_LOOPS_AVOIDED (expanded list prevents local loops entirely)
+         if (expandedList.find(successorState) != expandedList.end()) {
+            delete successor;
+         } else {
             successor->updateHCost(heuristic);
             successor->updateFCost();
-            puzzleQueue.push_back(successor);
-            push_heap(puzzleQueue.begin(), puzzleQueue.end(), AStarComparator());
-         } else {
-            numOfLocalLoopsAvoided++;
-            delete successor;
+            
+            // Step 7: If descendant state already in Q, keep only shorter path (compare f-cost, then g-cost)
+            bool foundInQueue = false;
+            for (auto it = puzzleQueue.begin(); it != puzzleQueue.end(); ++it) {
+               if ((*it)->toString() == successorState) {
+                  foundInQueue = true;
+                  bool newIsBetter = false;
+                  if (successor->getFCost() < (*it)->getFCost()) {
+                     newIsBetter = true;
+                  } else if (successor->getFCost() == (*it)->getFCost() && successor->getGCost() > (*it)->getGCost()) {
+                     newIsBetter = true;
+                  }
+                  
+                  if (newIsBetter) {
+                     // New path is better, remove old one from middle of heap
+                     delete *it;
+                     puzzleQueue.erase(it);
+                     numOfDeletionsFromMiddleOfHeap++;
+                     make_heap(puzzleQueue.begin(), puzzleQueue.end(), AStarComparator());
+                     puzzleQueue.push_back(successor);
+                     push_heap(puzzleQueue.begin(), puzzleQueue.end(), AStarComparator());
+                  } else {
+                     // Old path is better or equal, discard new successor
+                     delete successor;
+                  }
+                  break;
+               }
+            }
+            if (!foundInQueue) {
+               // State not in queue, add it
+               puzzleQueue.push_back(successor);
+               push_heap(puzzleQueue.begin(), puzzleQueue.end(), AStarComparator());
+            }
          }
       }
       
       if (current->canMoveRight()) {
          Puzzle* successor = current->moveRight();
          string successorState = successor->toString();
-         if (expandedList.find(successorState) == expandedList.end()) {
+         
+         if (expandedList.find(successorState) != expandedList.end()) {
+            delete successor;
+         } else {
             successor->updateHCost(heuristic);
             successor->updateFCost();
-            puzzleQueue.push_back(successor);
-            push_heap(puzzleQueue.begin(), puzzleQueue.end(), AStarComparator());
-         } else {
-            numOfLocalLoopsAvoided++;
-            delete successor;
+            
+            bool foundInQueue = false;
+            for (auto it = puzzleQueue.begin(); it != puzzleQueue.end(); ++it) {
+               if ((*it)->toString() == successorState) {
+                  foundInQueue = true;
+                  bool newIsBetter = false;
+                  if (successor->getFCost() < (*it)->getFCost()) {
+                     newIsBetter = true;
+                  } else if (successor->getFCost() == (*it)->getFCost() && successor->getGCost() > (*it)->getGCost()) {
+                     newIsBetter = true;
+                  }
+                  
+                  if (newIsBetter) {
+                     delete *it;
+                     puzzleQueue.erase(it);
+                     numOfDeletionsFromMiddleOfHeap++;
+                     make_heap(puzzleQueue.begin(), puzzleQueue.end(), AStarComparator());
+                     puzzleQueue.push_back(successor);
+                     push_heap(puzzleQueue.begin(), puzzleQueue.end(), AStarComparator());
+                  } else {
+                     delete successor;
+                  }
+                  break;
+               }
+            }
+            if (!foundInQueue) {
+               puzzleQueue.push_back(successor);
+               push_heap(puzzleQueue.begin(), puzzleQueue.end(), AStarComparator());
+            }
          }
       }
       
       if (current->canMoveDown()) {
          Puzzle* successor = current->moveDown();
          string successorState = successor->toString();
-         if (expandedList.find(successorState) == expandedList.end()) {
+         
+         if (expandedList.find(successorState) != expandedList.end()) {
+            delete successor;
+         } else {
             successor->updateHCost(heuristic);
             successor->updateFCost();
-            puzzleQueue.push_back(successor);
-            push_heap(puzzleQueue.begin(), puzzleQueue.end(), AStarComparator());
-         } else {
-            numOfLocalLoopsAvoided++;
-            delete successor;
+            
+            bool foundInQueue = false;
+            for (auto it = puzzleQueue.begin(); it != puzzleQueue.end(); ++it) {
+               if ((*it)->toString() == successorState) {
+                  foundInQueue = true;
+                  bool newIsBetter = false;
+                  if (successor->getFCost() < (*it)->getFCost()) {
+                     newIsBetter = true;
+                  } else if (successor->getFCost() == (*it)->getFCost() && successor->getGCost() > (*it)->getGCost()) {
+                     newIsBetter = true;
+                  }
+                  
+                  if (newIsBetter) {
+                     delete *it;
+                     puzzleQueue.erase(it);
+                     numOfDeletionsFromMiddleOfHeap++;
+                     make_heap(puzzleQueue.begin(), puzzleQueue.end(), AStarComparator());
+                     puzzleQueue.push_back(successor);
+                     push_heap(puzzleQueue.begin(), puzzleQueue.end(), AStarComparator());
+                  } else {
+                     delete successor;
+                  }
+                  break;
+               }
+            }
+            if (!foundInQueue) {
+               puzzleQueue.push_back(successor);
+               push_heap(puzzleQueue.begin(), puzzleQueue.end(), AStarComparator());
+            }
          }
       }
       
       if (current->canMoveLeft()) {
          Puzzle* successor = current->moveLeft();
          string successorState = successor->toString();
-         if (expandedList.find(successorState) == expandedList.end()) {
+         
+         if (expandedList.find(successorState) != expandedList.end()) {
+            delete successor;
+         } else {
             successor->updateHCost(heuristic);
             successor->updateFCost();
-            puzzleQueue.push_back(successor);
-            push_heap(puzzleQueue.begin(), puzzleQueue.end(), AStarComparator());
-         } else {
-            numOfLocalLoopsAvoided++;
-            delete successor;
+            
+            bool foundInQueue = false;
+            for (auto it = puzzleQueue.begin(); it != puzzleQueue.end(); ++it) {
+               if ((*it)->toString() == successorState) {
+                  foundInQueue = true;
+                  bool newIsBetter = false;
+                  if (successor->getFCost() < (*it)->getFCost()) {
+                     newIsBetter = true;
+                  } else if (successor->getFCost() == (*it)->getFCost() && successor->getGCost() > (*it)->getGCost()) {
+                     newIsBetter = true;
+                  }
+                  
+                  if (newIsBetter) {
+                     delete *it;
+                     puzzleQueue.erase(it);
+                     numOfDeletionsFromMiddleOfHeap++;
+                     make_heap(puzzleQueue.begin(), puzzleQueue.end(), AStarComparator());
+                     puzzleQueue.push_back(successor);
+                     push_heap(puzzleQueue.begin(), puzzleQueue.end(), AStarComparator());
+                  } else {
+                     delete successor;
+                  }
+                  break;
+               }
+            }
+            if (!foundInQueue) {
+               puzzleQueue.push_back(successor);
+               push_heap(puzzleQueue.begin(), puzzleQueue.end(), AStarComparator());
+            }
          }
       }
       
