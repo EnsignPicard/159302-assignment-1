@@ -4,8 +4,8 @@ TARGET := search
 # Detect the operating system
 ifeq ($(OS),Windows_NT)
 
-	CFLAGS := -O2 -std=c++14 -Wall -c
-    LFLAGS := -lgdi32
+	CFLAGS := -O2 -std=c++14 -Wall -c -fopenmp
+    LFLAGS := -lgdi32 -fopenmp
 
     EXTENSION := .exe
 	CLEANUP := del
@@ -25,8 +25,8 @@ else
 	ifeq ($(UNAME_S),Darwin)
 		# macOS
 		EXTENSION := .out
-		CFLAGS := -O2 -std=c++14 -Wall -I/usr/local/include -L/usr/local/lib -c -Wno-write-strings
-		LFLAGS := -L/usr/local/lib -lSDL_bgi -lSDL2 
+		CFLAGS := -O2 -std=c++14 -Wall -I/usr/local/include -L/usr/local/lib -c -Wno-write-strings -fopenmp
+		LFLAGS := -L/usr/local/lib -lSDL_bgi -lSDL2 -fopenmp
 		CLEANUP := rm -f
 		CLEANUP_OBJS := rm -f *.o
 
@@ -36,8 +36,8 @@ else
 	else ifeq ($(UNAME_S),Linux)
 		# Linux
 		EXTENSION := .out
-		CFLAGS := -O2 -std=c++14 -Wall -I/usr/local/include -L/usr/local/lib -c -Wno-write-strings  
-		LFLAGS := -lSDL_bgi -lSDL2 
+		CFLAGS := -O2 -std=c++14 -Wall -I/usr/local/include -L/usr/local/lib -c -Wno-write-strings  -fopenmp
+		LFLAGS := -lSDL_bgi -lSDL2 -fopenmp
 		CLEANUP := rm -f
 		CLEANUP_OBJS := rm -f *.o
 
@@ -55,7 +55,7 @@ OBJS := $(SRCS:.cpp=.o)
 
 # Rule to build the executable
 $(TARGET)$(EXTENSION): $(OBJS)
-	$(CC) -O2 -std=c++14 -o $@ $(OBJS) $(LFLAGS)
+	$(CC) -O2 -std=c++14  -fopenmp -o $@ $(OBJS) $(LFLAGS)
 
 # Rule to build object files
 %.o: %.cpp $(HDRS)
