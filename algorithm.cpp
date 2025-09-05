@@ -26,7 +26,7 @@ DuplicateResult checkQueueForDuplicateParallel(vector<Puzzle*>& puzzleQueue, Puz
     int foundIndex = -1;
     bool newIsBetter = false;
     
-    #pragma omp parallel shared(foundIndex, newIsBetter)
+    #pragma omp parallel
     {
         int localFoundIndex = -1;
         bool localNewIsBetter = false;
@@ -160,7 +160,6 @@ string uc_explist(string const initialState, string const goalState, int& pathLe
             numOfAttemptedNodeReExpansions++;
             delete successor;
          } else {
-            // Step 7: If descendant state already in Q, keep only shorter path to state in Q
             DuplicateResult dupResult = checkQueueForDuplicateParallel(puzzleQueue, successor, CompareType::PATH_LENGTH);
             
             if (dupResult.found) {
@@ -231,7 +230,7 @@ string aStar_ExpandedList(string const initialState, string const goalState, int
       }
    };
    
-   // Initialize data structures
+   // Initialise data structures
    unordered_set<string> expandedList;
    vector<Puzzle*> puzzleQueue;
    
@@ -287,7 +286,6 @@ string aStar_ExpandedList(string const initialState, string const goalState, int
          successor->updateHCost(heuristic);
          successor->updateFCost();
          
-         // Step 7: Check queue first - If descendant state already in Q, keep only one with lower f-cost
          DuplicateResult dupResult = checkQueueForDuplicateParallel(puzzleQueue, successor, CompareType::F_COST);
          
          if (dupResult.found) {
